@@ -8,6 +8,7 @@ import json
 
    
 frames = 600
+threshold = 100
 
 def applyMask(img1, img2, mask):
 
@@ -28,27 +29,31 @@ def mse(imageA, imageB):
 	err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
 	err /= float(imageA.shape[0] * imageA.shape[1])
 	
-	if err<100:
+	if err<threshold:
 		print("MSE between the two pictures are " + str(err))
 	return err
 
 def getKeyFrame(command, reference ,mask):
+	try :
 	pipe = sp.Popen(command, stdout = sp.PIPE, bufsize=-1)
-	time = 0
+		time = 0
 
-	for i in range(frames):
-		# Capture frame-by-frame
-		raw_image = pipe.stdout.read(1920*1080*3)
+		for i in range(frames):
+			# Capture frame-by-frame
+			raw_image = pipe.stdout.read(1920*1080*3)
 
-		if raw_image :
-			# transform the byte read into a numpy array
-			image = np.fromstring(raw_image, dtype='uint8')
-			image = image.reshape((1080,1920,3)) 
+			if raw_image :
+				# transform the byte read into a numpy array
+				image = np.fromstring(raw_image, dtype='uint8')
+				image = image.reshape((1080,1920,3)) 
 
-			if applyMask(image,reference, mask) < 100 : #mse margin for same pictures 
-				print("Found in frame " + str(i) + " !")
-				time = i
-				pipe.terminate()
+				if applyMask(image,reference, mask) < threshold : #mse threshold for same pictures 
+					print("Found in frame " + str(i) + " !")
+					time = i
+					pipe.terminate()
+		print("Couldn't find Keyframe")			
+	except:
+		print("Couldn't call subprocess FFMPEG")
 	
 
 	return time
@@ -98,11 +103,14 @@ def getKeyTuplet(timeStampGame,source,start, frames=200):
 
 
 def getLength(filename):
-    result = sp.run(["ffprobe", "-v", "error", "-show_entries",
-                             "format=duration", "-of",
-                             "default=noprint_wrappers=1:nokey=1", filename],
-        stdout=sp.PIPE,
-        stderr=sp.STDOUT)
+	try :
+	    result = sp.run(["ffprobe", "-v", "error", "-show_entries",
+	                             "format=duration", "-of",
+	                             "default=noprint_wrappers=1:nokey=1", filename],
+	        stdout=sp.PIPE,
+	        stderr=sp.STDOUT)
+	except:
+		print("Couldn't call subprocess ffprobe ")
     return float(result.stdout)
 
 def stringToDeltaTime(string):
@@ -135,6 +143,8 @@ def clipper(data,source):
 			print("\n")
 			
 			print("Extracting game " + str(i) + " ...")
+
+
 			FFMPEG_BIN = "ffmpeg"
 			command3 = [ FFMPEG_BIN,
 			'-ss', start,
@@ -145,7 +155,11 @@ def clipper(data,source):
 			'-loglevel', 'warning',
 			'-c','copy',
 			'game'+str(i)+'.mp4']
-			sp.call(command3)
+			try:
+				sp.call(command3)
+			except:
+				print("Couldn't call subprocess FFMPEG for extracting")
+
 
 			print("Complete !")
 			print("\n")
