@@ -5,7 +5,7 @@ import datetime
 from datetime import timedelta
 
 
-wrapper = Lolwrapper("RGAPI-71f96a59-cc9b-4da5-9e55-dbe259c88ed4")
+wrapper = Lolwrapper("API-KEY")
 
 summoner = wrapper.requestSummonerData("Pentapups")
 matchlist = wrapper.requestMatchList(summoner["accountId"])
